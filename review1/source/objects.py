@@ -15,6 +15,12 @@ class Field:
 		self.screen = screen
 		self.height = coords[0]
 		self.width = coords[1]
+		
+	def __repr__(self):
+		return str(self.height) + ' ' + str(self.width)
+	
+	def load(self, str):
+		self.height, self.width = str.split(' ')
 	
 	def draw(self):
 		"""Draws the game field on the screen"""
@@ -28,13 +34,21 @@ class Field:
 
 class Snake:
 	"""The snake"""
-	def __init__(self, screen, field, coords, speed = (0, 1)):
+	def __init__(self, screen, field, coords, speed = (0, 1), alive = True):
 		self.screen = screen
 		self.field = field
 		self.coords = coords
 		self.speed = speed
 		self.queue = [coords]
-		self.alive = True
+		self.alive = alive
+		
+	def __repr__(self):
+		tupstr = lambda tup: ' '.join(map(str, tup))
+		_str = tupstr(self.speed) + '\n'
+		_str += str(len(self.queue)) + '\n'
+		_str += '\n'.join(map(tupstr, self.queue)) + '\n'
+		_str += str(self.alive)
+		return _str
 	
 	def move(self, food, score):
 		"""Moves the snake, determines if it dies or eats food, recalculates score"""
@@ -53,11 +67,9 @@ class Snake:
 		self.screen.addch(tail[0] + 1, tail[1] + 1, ' ')
 		self.screen.refresh()
 
-	def draw(self, body = []):
-		"""WIP"""
-		if body == []:
-			body.append(self.coords)
-		for crd in body:
+	def draw(self):
+		"""Draws the snake"""
+		for crd in self.queue:
 			self.screen.addch(crd[0] + 1, crd[1] + 1, '#')
 		self.screen.refresh()
 

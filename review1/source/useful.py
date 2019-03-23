@@ -1,7 +1,13 @@
 import os, curses
 from time import sleep
+import datetime
 from random import random
 import source.objects as obj
+
+class EngineError(Exception):
+	"""Custom Exception"""
+	def __init__(self, message, errors = []):
+		super().__init__(message)
 
 def read_from_file(fname):
 	"""Reads a file and returns its insides"""
@@ -50,6 +56,38 @@ def init_options():
 		opts[_type] = value
 	return opts
 
+def save_game(field, snake, food, score):
+	"""Saves the game to a save file"""
+	tupstr = lambda tup: ' '.join(map(str, tup[0])) + ' ' + str(tup[1])
+	date = datetime.datetime.today()
+	_file = open(date.strftime('save/%Y_%m_%d_%H_%M_%S'), 'w+')
+	ls = list(map(str, (field, snake, len(food), '\n'.join(list(map(tupstr, food.items()))), str(score))))
+	_file.write('\n'.join(ls))
+	_file.close()
+
+def load(screen, save):
+	"""Loads a game from a save"""
+	content = read_from_file('save/' + save).strip().split('\n')
+	coords = content[0].split()
+	field = obj.Field(screen, (int(coords[0]), int(coords[1])))
+	speed = tuple(map(int, content[1].split()))
+	length = int(content[2])
+	body = []
+	for i in range(3, 3 + length):
+		piece = content[i].split()
+		body.append((int(piece[0]), int(piece[1])))
+	alive = bool(content[i + 1])
+	snake = obj.Snake(screen, field, (0, 0), speed, alive)
+	snake.queue = body
+	foodcount = int(content[i + 2])
+	food = dict()
+	for j in range(i + 3, i + 3 + foodcount):
+		fd = content[j].split()
+		food[(int(fd[0]), int(fd[1]))] = int(fd[2])
+	screen.refresh()
+	score = obj.MutableInt(int(content[j + 1]))
+	return (field, snake, food, score)
+
 def controls_manager(symb, ctype, snake):
 	"""Manages controls"""
 	if ctype == 'wasd':
@@ -97,43 +135,54 @@ def generate_food(screen, snake, field, food):
 	screen.refresh()
 	food[possible[new]] = 1 + int(random() * 3)
 
-def game(screen):
+def game(screen, new = True, save = ""):
 	"""Plays the game"""
 	screen.nodelay(True)
 	curses.curs_set(0)
 	opts = init_options()
 	modifier = difficulty_manager(opts['difficulty'])
-	field = obj.Field(screen, screen.getmaxyx())
-	field.draw()
-	snake = obj.Snake(screen, field, (3, 3))
-	snake.draw()
+	if new:
+		field = obj.Field(screen, (10, 20))
+		snake = obj.Snake(screen, field, (3, 3))
+		score = obj.MutableInt(1)
+		food = dict()
+		field.draw()
+		snake.draw()
+	else:
+		field, snake, food, score = load(screen, save)
+		field.draw()
+		snake.draw()
+		for fd in food:
+			screen.addch(fd[0] + 1, fd[1] + 1, '·')
+		screen.refresh()
 	paused, running = False, True
-	score = obj.MutableInt(1)
-	food = dict()
 	while snake.alive and running:
 		symb = screen.getch()
 		if symb == 27:
 			running = False
-			return (snake, score)
-		if symb == ord('p') or symb == ord('P'):
+			return score
+		elif symb == ord('p') or symb == ord('P'):
 			paused = [True, False][paused]
+		elif symb == ord('c') or symb == ord('C'):
+			save_game(field, snake, food, score)
 		else:
 			controls_manager(symb, opts['controls_types'], snake)	
 		if not paused:
 			snake.move(food, score)
-			if random() < 0.5 and len(food.keys()) < 10:
+			if random() < 0.1 and len(food.keys()) < 3:
 				generate_food(screen, snake, field, food)
-			curses.napms(int(1000*modifier))
-	return (snake, score)
+			curses.napms(int(1000 * modifier))
+	return score
 
 def new_game():
 	"""Wrapper around the game"""
-	return curses.wrapper(game)
-
-def load_game():
-	"""WIP"""
-	pass
+	return curses.wrapper(game, True)
 	
+def load_game():
+	saves = os.listdir('save')
+	save = poll(saves, 'Select the save you want to load:')
+	return curses.wrapper(game, False, save)
+
 def options():
 	"""Allows to customize controls and other things"""
 	clear()

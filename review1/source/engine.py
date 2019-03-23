@@ -1,10 +1,5 @@
 import source.useful as lib
 
-class EngineError(Exception):
-	"""Custom Exception"""
-	def __init__(self, message, errors):
-		super().__init__(message)
-
 class Engine:
 	"""Game engine"""
 	def __init__(self):
@@ -27,10 +22,11 @@ class Engine:
 				self.mode = lib.menu()
 			elif self.mode == 'new game':
 				score = lib.new_game()
-				lib.message(4 * '\t' + 'Game over! Your score is {}.'.format(score[1]), 5)
+				lib.message(4 * '\t' + 'Game over! Your score is {}.'.format(score), 5)
 				self.mode = 'menu'
 			elif self.mode == 'load game':
-				lib.load_game()
+				score = lib.load_game()
+				lib.message(4 * '\t' + 'Game over! Your score is {}.'.format(score), 5)
 				self.mode = 'menu'
 			elif self.mode == 'options':
 				lib.options()
