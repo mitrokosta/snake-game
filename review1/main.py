@@ -10,7 +10,7 @@ def main():
     except EngineError as error:
         print('An error has occurred. Error message: {}'.format(error.message))
         with open('logger', 'w') as log:
-            log.write(error.message + '\n' + error.details)
+            log.write(error.message + '\n' + error.errors)
 
 
 if __name__ == '__main__':
