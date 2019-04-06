@@ -1,4 +1,5 @@
 from source.tools import *
+from source.json_handler import Config
 import curses
 from time import sleep
 import datetime
@@ -6,17 +7,6 @@ from random import random
 import source.objects as obj
 from source.engine_except import EngineError
 from enum import Enum
-
-
-def init_options():
-    """Reads and returns the options"""
-
-    cfg = read_from_file('resource/config.ini').strip().split('\n')
-    opts = dict()
-    for opt in cfg:
-        _type, value = opt.split()
-        opts[_type] = value
-    return opts
 
 
 def save_game(field, snake, food, score):
@@ -85,29 +75,12 @@ def controls_manager(symb, ctype, snake):
 
     controls_types = {'wasd': wasd_controls,
                       'arrows': arrows_controls}
-
-    if ctype in controls_types:
-        controls = controls_types[ctype]
-    else:
-        raise EngineError('wrong controls type', ctype)
+   
+    config = Config('resource/settings.json')
+    controls = controls_types[config.get('controls type')]
 
     if symb in controls and snake.speed != returns[controls[symb]].value:
         snake.speed = controls[symb].value
-
-
-def difficulty_manager(diff):
-    """Manages diffuculty"""
-
-    diff_types = {'trivial': 1.0,
-                  'easy': 0.8,
-                  'normal': 0.6,
-                  'hard': 0.4,
-                  'impossible': 0.2}
-
-    if diff in diff_types:
-        return diff_types[diff]
-    else:
-        raise EngineError('wrong difficulty', diff)
 
 
 def generate_food(screen, snake, field, food):
@@ -125,10 +98,11 @@ def generate_food(screen, snake, field, food):
 def game(screen, new=True, save=""):
     """Plays the game"""
 
+    config = Config('resource/settings.json')
     screen.nodelay(True)
     curses.curs_set(0)
-    opts = init_options()
-    modifier = difficulty_manager(opts['difficulty'])
+    opts = config.content
+    modifier = float(opts['difficulty'])
     if new:
         field = obj.Field(screen, (10, 20))
         snake = obj.Snake(screen, field, (3, 3))
@@ -154,7 +128,7 @@ def game(screen, new=True, save=""):
         elif symb == ord('c') or symb == ord('C'):
             save_game(field, snake, food, score)
         else:
-            controls_manager(symb, opts['controls_types'], snake)
+            controls_manager(symb, opts['controls type'], snake)
         if not paused:
             snake.move(food, score)
             if random() < 0.1 and len(food.keys()) < 3:
@@ -183,18 +157,18 @@ def options():
     """Allows to customize controls and other things"""
 
     clear()
-    sources = read_from_file('resource/options.ini').strip().split('\n')
-    with open('resource/config.ini', 'w+') as fcfg:
-        for src in sources:
-            _type, variants = src.split(': ', 1)
-            variants = variants.split(', ')
-            if _type == 'controls_types':
-                ans = poll(variants, 'Choose your preferred type of controls:')
-                fcfg.write(_type + ' ' + ans + '\n')
-            if _type == 'difficulty':
-                ans = poll(variants, 'Choose game diffuculty:')
-                fcfg.write(_type + ' ' + ans + '\n')
+    config = Config('resource/config.json')
+    settings = Config('resource/settings.json')
+    types = config.get('settings').keys()
+    _type = poll(types, 'What option would you like to change:')
 
+    message = {'controls type': 'Choose your preferred type of controls:',
+               'difficulty': 'Choose game diffuculty:'}
+
+    variants = config.get('settings')[_type.upper()]
+    choice = poll(variants.keys(), message[_type])
+    settings.set(_type, variants[choice])
+    settings.save()
 
 def exit_game():
     """Exits"""
@@ -206,6 +180,7 @@ def menu():
     """Prints the menu and offers a choice"""
 
     clear()
-    _menu = read_from_file('resource/menu.ini').strip().split('\n')
+    config = Config('resource/config.json')
+    _menu = config.get('menu')
     menu_result = poll(_menu, 4 * '\t' + 'GAME MENU')
     return menu_result

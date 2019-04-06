@@ -3,14 +3,9 @@ from source.engine_except import EngineError
 
 
 def main():
-    try:
-        engine = game_engine.Engine()
-        engine.launch()
-        engine.run()
-    except EngineError as error:
-        print('An error has occurred. Error message: {}'.format(error.message))
-        with open('logger', 'w') as log:
-            log.write(error.message + '\n' + error.errors)
+    engine = game_engine.Engine()
+    engine.launch()
+    engine.run()
 
 
 if __name__ == '__main__':
