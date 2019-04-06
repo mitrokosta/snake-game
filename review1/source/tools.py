@@ -11,9 +11,8 @@ from enum import Enum
 def read_from_file(fname):
     """Reads a file and returns its insides"""
 
-    _file = open(fname, 'r')
-    insides = _file.read()
-    _file.close()
+    with open(fname, 'r') as _file:
+        insides = _file.read()
     return insides
 
 
@@ -82,11 +81,10 @@ def save_game(field, snake, food, score):
         return ' '.join(map(str, tup[0])) + ' ' + str(tup[1])
 
     date = datetime.datetime.today()
-    _file = open(date.strftime('save/%Y_%m_%d_%H_%M_%S'), 'w+')
-    ls = list(map(str, (field, snake, len(food),
-              '\n'.join(list(map(tupstr, food.items()))), str(score))))
-    _file.write('\n'.join(ls))
-    _file.close()
+    with open(date.strftime('save/%Y_%m_%d_%H_%M_%S'), 'w+') as _file:
+        ls = list(map(str, (field, snake, len(food),
+                  '\n'.join(list(map(tupstr, food.items()))), str(score))))
+        _file.write('\n'.join(ls))
 
 
 def load(screen, save):
@@ -240,17 +238,16 @@ def options():
 
     clear()
     sources = read_from_file('resource/options.ini').strip().split('\n')
-    fcfg = open('resource/config.ini', 'w+')
-    for src in sources:
-        _type, variants = src.split(': ', 1)
-        variants = variants.split(', ')
-        if _type == 'controls_types':
-            ans = poll(variants, 'Choose your preferred type of controls:')
-            fcfg.write(_type + ' ' + ans + '\n')
-        if _type == 'difficulty':
-            ans = poll(variants, 'Choose game diffuculty:')
-            fcfg.write(_type + ' ' + ans + '\n')
-    fcfg.close()
+    with open('resource/config.ini', 'w+') as fcfg:
+        for src in sources:
+            _type, variants = src.split(': ', 1)
+            variants = variants.split(', ')
+            if _type == 'controls_types':
+                ans = poll(variants, 'Choose your preferred type of controls:')
+                fcfg.write(_type + ' ' + ans + '\n')
+            if _type == 'difficulty':
+                ans = poll(variants, 'Choose game diffuculty:')
+                fcfg.write(_type + ' ' + ans + '\n')
 
 
 def exit_game():
