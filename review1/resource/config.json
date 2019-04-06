@@ -1,0 +1,21 @@
+{
+    "menu": [
+        "NEW GAME",
+        "LOAD GAME",
+        "OPTIONS",
+        "EXIT GAME"
+    ],
+    "settings": {
+        "CONTROLS TYPE": {
+            "wasd controls": "wasd",
+            "arrows controls": "arrows"
+        },
+        "DIFFICULTY": {
+            "trivial": 1.0,
+            "easy": 0.8,
+            "normal": 0.6,
+            "hard": 0.4,
+            "impossible": 0.2
+        }
+    }
+}
