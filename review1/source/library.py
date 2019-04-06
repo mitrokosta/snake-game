@@ -75,7 +75,7 @@ def controls_manager(symb, ctype, snake):
 
     controls_types = {'wasd': wasd_controls,
                       'arrows': arrows_controls}
-   
+
     config = Config('resource/settings.json')
     controls = controls_types[config.get('controls type')]
 
@@ -169,6 +169,7 @@ def options():
     choice = poll(variants.keys(), message[_type])
     settings.set(_type, variants[choice])
     settings.save()
+
 
 def exit_game():
     """Exits"""
