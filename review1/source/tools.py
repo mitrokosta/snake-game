@@ -52,12 +52,13 @@ def message(msg, period):
 
 def make_folder(fname):
     """Creates a folder (unless present)"""
+
     if fname not in os.listdir():
         os.mkdir(fname)
 
 
 def list_folder(fname):
     """Creates a folder (unless present) and lists its contents"""
-    
+
     make_folder(fname)
     return os.listdir(fname)
