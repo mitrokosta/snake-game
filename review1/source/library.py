@@ -1,4 +1,5 @@
-import os
+from source.tools import *
+from source.json_handler import Config
 import curses
 from time import sleep
 import datetime
@@ -8,73 +9,6 @@ from source.engine_except import EngineError
 from enum import Enum
 
 
-def read_from_file(fname):
-    """Reads a file and returns its insides"""
-
-    _file = open(fname, 'r')
-    insides = _file.read()
-    _file.close()
-    return insides
-
-
-def clear():
-    """Clears the console"""
-
-    if os.name == 'nt':
-        os.system('cls')
-    else:
-        os.system('clear')
-
-
-def poll(variants, msg=''):
-    """Asks a question until getting a valid answer"""
-
-    clear()
-    if msg != '':
-        print(msg)
-    print('\n'.join(variants))
-
-    def lowercase(_str):
-        return _str.lower().split()
-
-    lower = list(map(lowercase, variants))
-    result = ''
-    while True:
-        _input = input('Your choice: ').lower().split()
-        if _input in lower:
-            result = ' '.join(_input)
-            break
-        else:
-            print('Incorrect input. Please, make a correct choice.')
-    return result
-
-
-def message(msg, period):
-    """Prints a message"""
-
-    clear()
-    print(msg)
-    sleep(period)
-
-
-def init_options():
-    """Reads and returns the options"""
-
-    cfg = read_from_file('resource/config.ini').strip().split('\n')
-    opts = dict()
-    for opt in cfg:
-        _type, value = opt.split()
-        opts[_type] = value
-    return opts
-
-
-def check_saves_folder():
-    """Creates a saves folder if not present"""
-
-    if 'save' not in os.listdir():
-        os.mkdir('save')
-
-
 def save_game(field, snake, food, score):
     """Saves the game to a save file"""
 
@@ -82,11 +16,11 @@ def save_game(field, snake, food, score):
         return ' '.join(map(str, tup[0])) + ' ' + str(tup[1])
 
     date = datetime.datetime.today()
-    _file = open(date.strftime('save/%Y_%m_%d_%H_%M_%S'), 'w+')
-    ls = list(map(str, (field, snake, len(food),
-              '\n'.join(list(map(tupstr, food.items()))), str(score))))
-    _file.write('\n'.join(ls))
-    _file.close()
+    make_folder('save')
+    with open(date.strftime('save/%Y_%m_%d_%H_%M_%S'), 'w') as _file:
+        ls = list(map(str, (field, snake, len(food),
+                  '\n'.join(list(map(tupstr, food.items()))), str(score))))
+        _file.write('\n'.join(ls))
 
 
 def load(screen, save):
@@ -106,6 +40,7 @@ def load(screen, save):
     snake.queue = body
     foodcount = int(content[i + 2])
     food = dict()
+    j = i + 3
     for j in range(i + 3, i + 3 + foodcount):
         fd = content[j].split()
         food[(int(fd[0]), int(fd[1]))] = int(fd[2])
@@ -141,28 +76,11 @@ def controls_manager(symb, ctype, snake):
     controls_types = {'wasd': wasd_controls,
                       'arrows': arrows_controls}
 
-    if ctype in controls_types:
-        controls = controls_types[ctype]
-    else:
-        raise EngineError('wrong controls type', ctype)
+    config = Config('resource/settings.json')
+    controls = controls_types[config.get('controls type')]
 
     if symb in controls and snake.speed != returns[controls[symb]].value:
         snake.speed = controls[symb].value
-
-
-def difficulty_manager(diff):
-    """Manages diffuculty"""
-
-    diff_types = {'trivial': 1.0,
-                  'easy': 0.8,
-                  'normal': 0.6,
-                  'hard': 0.4,
-                  'impossible': 0.2}
-
-    if diff in diff_types:
-        return diff_types[diff]
-    else:
-        raise EngineError('wrong difficulty', diff)
 
 
 def generate_food(screen, snake, field, food):
@@ -180,10 +98,11 @@ def generate_food(screen, snake, field, food):
 def game(screen, new=True, save=""):
     """Plays the game"""
 
+    config = Config('resource/settings.json')
     screen.nodelay(True)
     curses.curs_set(0)
-    opts = init_options()
-    modifier = difficulty_manager(opts['difficulty'])
+    opts = config.content
+    modifier = float(opts['difficulty'])
     if new:
         field = obj.Field(screen, (10, 20))
         snake = obj.Snake(screen, field, (3, 3))
@@ -209,7 +128,7 @@ def game(screen, new=True, save=""):
         elif symb == ord('c') or symb == ord('C'):
             save_game(field, snake, food, score)
         else:
-            controls_manager(symb, opts['controls_types'], snake)
+            controls_manager(symb, opts['controls type'], snake)
         if not paused:
             snake.move(food, score)
             if random() < 0.1 and len(food.keys()) < 3:
@@ -227,8 +146,7 @@ def new_game():
 def load_game():
     """Interface for loading a game"""
 
-    check_saves_folder()
-    saves = os.listdir('save')
+    saves = list_folder('save')
     if len(saves) == 0:
         return curses.wrapper(game, True)
     save = poll(saves, 'Select the save you want to load:')
@@ -239,18 +157,18 @@ def options():
     """Allows to customize controls and other things"""
 
     clear()
-    sources = read_from_file('resource/options.ini').strip().split('\n')
-    fcfg = open('resource/config.ini', 'w+')
-    for src in sources:
-        _type, variants = src.split(': ', 1)
-        variants = variants.split(', ')
-        if _type == 'controls_types':
-            ans = poll(variants, 'Choose your preferred type of controls:')
-            fcfg.write(_type + ' ' + ans + '\n')
-        if _type == 'difficulty':
-            ans = poll(variants, 'Choose game diffuculty:')
-            fcfg.write(_type + ' ' + ans + '\n')
-    fcfg.close()
+    config = Config('resource/config.json')
+    settings = Config('resource/settings.json')
+    types = config.get('settings').keys()
+    _type = poll(types, 'What option would you like to change:')
+
+    message = {'controls type': 'Choose your preferred type of controls:',
+               'difficulty': 'Choose game diffuculty:'}
+
+    variants = config.get('settings')[_type.upper()]
+    choice = poll(variants.keys(), message[_type])
+    settings.set(_type, variants[choice])
+    settings.save()
 
 
 def exit_game():
@@ -263,6 +181,7 @@ def menu():
     """Prints the menu and offers a choice"""
 
     clear()
-    _menu = read_from_file('resource/menu.ini').strip().split('\n')
+    config = Config('resource/config.json')
+    _menu = config.get('menu')
     menu_result = poll(_menu, 4 * '\t' + 'GAME MENU')
     return menu_result

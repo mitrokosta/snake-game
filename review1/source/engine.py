@@ -1,4 +1,4 @@
-import source.useful as lib
+import source.library as lib
 from source.engine_except import EngineError
 
 
@@ -51,4 +51,4 @@ class Engine:
             if self.mode in self.mode_actions:
                 self.mode = self.mode_actions[self.mode]()
             else:
-                raise EngineError('wrong mode', self.mode)
+                raise EngineError('wrong mode')

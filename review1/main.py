@@ -1,10 +1,11 @@
-import source.engine as engine
+import source.engine as game_engine
+from source.engine_except import EngineError
 
 
 def main():
-    eng = engine.Engine()
-    eng.launch()
-    eng.run()
+    engine = game_engine.Engine()
+    engine.launch()
+    engine.run()
 
 
 if __name__ == '__main__':
